@@ -87,6 +87,8 @@ services:
     restart: unless-stopped
     environment:
       # DB
+      MYSQL_HOST: ${MISP_MYSQL_HOST}
+      MYSQL_PORT: ${MISP_MYSQL_PORT}
       MYSQL_ROOT_PASSWORD: ${MISP_MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MISP_MYSQL_DATABASE}
       MYSQL_USER: ${MISP_MYSQL_USER}
