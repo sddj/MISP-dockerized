@@ -25,6 +25,7 @@ MISP_dockerized_repo=$(echo ${SCRIPTPATH%/*})
 MISP_dockerized_repo=$(echo ${MISP_dockerized_repo%/*})
 
 CONFIG_FILE="${MISP_dockerized_repo}/config/config.env"
+DOCKER_COMPOSE_ENV="${MISP_dockerized_repo}/current/.env"
 DOCKER_COMPOSE_CONF="${MISP_dockerized_repo}/current/docker-compose.override.yml"
 DOCKER_COMPOSE_FILE="${MISP_dockerized_repo}/current/docker-compose.yml"
 BACKUP_PATH="${MISP_dockerized_repo}/backup"
@@ -134,19 +135,34 @@ function default_container_version() {
 # Start Function Section
 function check_exists_configs(){
   # Init variables
-  EXIT_COMPOSE=0
+  EXIT_COMPOSE_ENV=0
+  EXIT_COMPOSE_CONF=0
   EXIT_ANSIBLE=0
+  # check environment file and backup if its needed
+  if [[ -f $DOCKER_COMPOSE_ENV ]]; then
+    read -r -p "$STARTMSG A docker-compose environment file exists and will be overwritten, are you sure you want to contine? [y/N] " -ei "n" response
+    case $response in
+      [yY][eE][sS]|[yY])
+        # move existing environment file in backup folder and add the date of this movement
+        cp -av $DOCKER_COMPOSE_ENV $BACKUP_PATH/docker-compose-env-backup_`date +%Y%m%d_%H_%M`
+        EXIT_COMPOSE_ENV=0
+        ;;
+      *)
+        EXIT_COMPOSE_ENV=1
+      ;;
+    esac
+  fi
   # check config file and backup if its needed
   if [[ -f $DOCKER_COMPOSE_CONF ]]; then
     read -r -p "$STARTMSG A docker-compose config file exists and will be overwritten, are you sure you want to contine? [y/N] " -ei "n" response
     case $response in
       [yY][eE][sS]|[yY])
         # move existing configuration in backup folder and add the date of this movement
-        cp -av $DOCKER_COMPOSE_CONF $BACKUP_PATH/.env-backup_`date +%Y%m%d_%H_%M`
-        EXIT_COMPOSE=0
+        cp -av $DOCKER_COMPOSE_CONF $BACKUP_PATH/docker-compose-override-backup_`date +%Y%m%d_%H_%M`
+        EXIT_COMPOSE_CONF=0
         ;;
       *)
-        EXIT_COMPOSE=1
+        EXIT_COMPOSE_CONF=1
       ;;
     esac
   fi
@@ -165,8 +181,8 @@ function check_exists_configs(){
     esac
   fi
 
-  # chek if both want to exit:
-  [ "$EXIT_ANSIBLE" == "$EXIT_COMPOSE" ] && [ "$EXIT_ANSIBLE" == "1" ] && exit 0;
+  # check if all want to exit:
+  [ "$EXIT_COMPOSE_ENV" == "1" ] && [ "$EXIT_COMPOSE_CONF" == "1" ] && [ "$EXIT_ANSIBLE" == "1" ] && exit 0;
   echo
 }
 
@@ -508,129 +524,92 @@ if [ "$AUTOMATE_BUILD" = "true" ]
 fi
 
 if [ "$DEV_MODE" == true -o DOCKER_REGISTRY != "dockerhub.dcso.de" ]; then
-  IMAGE_MISP_MODULES="image: ${DOCKER_REGISTRY}/misp-dockerized-misp-modules:${MISP_MODULES_CONTAINER_TAG}"
-  IMAGE_MISP_SERVER="image: ${DOCKER_REGISTRY}/misp-dockerized-server:${MISP_CONTAINER_TAG}"
-  IMAGE_MISP_PROXY="image: ${DOCKER_REGISTRY}/misp-dockerized-proxy:${PROXY_CONTAINER_TAG}"
-  IMAGE_MISP_ROBOT="image: ${DOCKER_REGISTRY}/misp-dockerized-robot:${ROBOT_CONTAINER_TAG}"
-  IMAGE_MISP_REDIS="image: ${DOCKER_REGISTRY}/misp-dockerized-redis:${REDIS_CONTAINER_TAG}"
-  IMAGE_MISP_POSTFIX="image: ${DOCKER_REGISTRY}/misp-dockerized-postfix:${POSTFIX_CONTAINER_TAG}"
-  IMAGE_MISP_DB="image: ${DOCKER_REGISTRY}/misp-dockerized-db:${DB_CONTAINER_TAG}"
+  IMAGE_MISP_MODULES="${DOCKER_REGISTRY}/misp-dockerized-misp-modules:${MISP_MODULES_CONTAINER_TAG}"
+  IMAGE_MISP_SERVER="${DOCKER_REGISTRY}/misp-dockerized-server:${MISP_CONTAINER_TAG}"
+  IMAGE_MISP_PROXY="${DOCKER_REGISTRY}/misp-dockerized-proxy:${PROXY_CONTAINER_TAG}"
+  IMAGE_MISP_ROBOT="${DOCKER_REGISTRY}/misp-dockerized-robot:${ROBOT_CONTAINER_TAG}"
+  IMAGE_MISP_REDIS="${DOCKER_REGISTRY}/misp-dockerized-redis:${REDIS_CONTAINER_TAG}"
+  IMAGE_MISP_DB="${DOCKER_REGISTRY}/misp-dockerized-db:${DB_CONTAINER_TAG}"
 fi
 
 ###################################
 # Write Configuration
 echo -n "$STARTMSG Write configuration..."
 ###################################
+cat <<EOF > $DOCKER_COMPOSE_ENV
+DOCKER_NETWORK=${DOCKER_NETWORK}
+BRIDGE_NAME=${BRIDGE_NAME}
+
+MISP_IMAGE_REDIS=${IMAGE_MISP_REDIS}
+MISP_IMAGE_MODULES=${IMAGE_MISP_MODULES}
+MISP_IMAGE_SERVER=${IMAGE_MISP_SERVER}
+MISP_IMAGE_PROXY=${IMAGE_MISP_PROXY}
+MISP_IMAGE_ROBOT=${IMAGE_MISP_ROBOT}
+MISP_IMAGE_DB=${IMAGE_MISP_DB}
+
+MISP_MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+MISP_MYSQL_DATABASE=${MYSQL_DATABASE}
+MISP_MYSQL_USER=${MYSQL_USER}
+MISP_MYSQL_PASSWORD=${MYSQL_PASSWORD}
+
+MISP_REDIS_FQDN=${REDIS_FQDN}
+MISP_REDIS_PORT=${REDIS_PORT}
+MISP_REDIS_PW=${REDIS_PW}
+MISP_REDIS_DATABASE=245
+
+MISP_PROXY_HTTP=${HTTP_PROXY}
+MISP_PROXY_HTTPS=${HTTPS_PROXY}
+MISP_PROXY_NO=${NO_PROXY}
+MISP_PROXY_IP=${HTTP_ALLOWED_IP}
+
+MISP_POSTFIX_SENDER_ADDRESS=${SENDER_ADDRESS}
+MISP_POSTFIX_DOMAIN=${DOMAIN}
+MISP_POSTFIX_RELAY_HOST=${RELAYHOST}
+MISP_POSTFIX_RELAY_USER=${RELAY_USER}
+MISP_POSTFIX_RELAY_PASSWORD=${RELAY_PASSWORD}
+MISP_POSTFIX_DEBUG_PEER=${DEBUG_PEER}
+
+MISP_HTTP_SERVERADMIN=${HTTP_SERVERADMIN}
+
+MISP_FQDN=${MISP_FQDN}
+MISP_URL=${MISP_URL}
+MISP_HTTPS_PORT=${HTTPS_PORT}
+MISP_prefix=${MISP_prefix}
+MISP_encoding=${MISP_encoding}
+MISP_SALT=${MISP_SALT}
+MISP_ADD_ANALYZE_COLUMN=${ADD_ANALYZE_COLUMN}
+MISP_USE_PGP=${USE_PGP}
+MISP_USE_SMIME=${USE_SMIME}
+
+MISP_CRON_INTERVAL=${CRON_INTERVAL}
+MISP_CRON_USER_ID=${CRON_USER_ID}
+
+MISP_PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT}
+MISP_PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME}
+MISP_PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE}
+MISP_PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE}
+
+MISP_PROJECT_DIR=${MISP_dockerized_repo}
+EOF
 # Docker-compose override File
 cat << EOF > $DOCKER_COMPOSE_CONF
 version: '3.1'
 
-networks: 
-  misp-backend:
-    driver_opts:
-     com.docker.network.bridge.name: "${BRIDGE_NAME}"
-    ipam:
-      config:
-      - subnet: "${DOCKER_NETWORK}"
-
 services:
-  # misp-db:
-  #   ${IMAGE_MISP_DB}
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-  #     MYSQL_DATABASE: ${MYSQL_DATABASE}
-  #     MYSQL_USER: ${MYSQL_USER}
-  #     MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-
-  misp-redis:
-     ${IMAGE_MISP_REDIS}
-
   misp-modules:
-    ${IMAGE_MISP_MODULES}
-    environment:
-      REDIS_BACKEND: ${REDIS_FQDN}
-      REDIS_PORT: "${REDIS_PORT}"
-      REDIS_PW: "${REDIS_PW}"
-      REDIS_DATABASE: "245"
-      http_proxy: ${HTTP_PROXY}
-      https_proxy: ${HTTPS_PROXY}
-      no_proxy: ${NO_PROXY}
     ${LOG_SETTINGS}
 
   misp-server:
-    ${IMAGE_MISP_SERVER}
     # ports:
     #   - "8080:80" # DEBUG only
     #   - "8443:443" # DEBUG only
-    environment:
-      # DB
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      # REDIS
-      REDIS_FQDN: "${REDIS_FQDN}"
-      REDIS_PORT: "${REDIS_PORT}"
-      REDIS_PW: "${REDIS_PW}"
-      # PROXY
-      http_proxy: ${HTTP_PROXY}
-      https_proxy: ${HTTPS_PROXY}
-      no_proxy: ${NO_PROXY}
-      # POSTFIX
-      SENDER_ADDRESS: ${SENDER_ADDRESS}
-      DOMAIN: ${DOMAIN}
-      HTTP_SERVERADMIN: ${HTTP_SERVERADMIN}
-      RELAYHOST: ${RELAYHOST}
-      RELAY_USER: ${RELAY_USER}
-      RELAY_PASSWORD: ${RELAY_PASSWORD}
-      DOCKER_NETWORK: ${DOCKER_NETWORK}
-      DEBUG_PEER: ${DEBUG_PEER}
-      # MISP
-      MISP_FQDN: ${MISP_FQDN}
-      MISP_URL: ${MISP_URL}
-      MISP_HTTPS_PORT: ${HTTPS_PORT}
-      MISP_prefix: ${MISP_prefix}
-      MISP_encoding: ${MISP_encoding}
-      MISP_SALT: ${MISP_SALT}
-      ADD_ANALYZE_COLUMN: "${ADD_ANALYZE_COLUMN}"
-      USE_PGP: "${USE_PGP}"
-      USE_SMIME: "${USE_SMIME}"
-      # Cron
-      CRON_INTERVAL: "${CRON_INTERVAL}"
-      CRON_USER_ID: "${CRON_USER_ID}"
-      # PHP
-      PHP_MEMORY_LIMIT: "${PHP_MEMORY_LIMIT}"
-      PHP_MAX_EXECUTION_TIME: "${PHP_MAX_EXECUTION_TIME}"
-      PHP_POST_MAX_SIZE: "${PHP_POST_MAX_SIZE}"
-      PHP_UPLOAD_MAX_FILESIZE: "${PHP_UPLOAD_MAX_FILESIZE}"
     ${LOG_SETTINGS}
 
   misp-proxy:
-    ${IMAGE_MISP_PROXY}
-    environment:
-      MISP_FQDN: ${MISP_FQDN}
-      HTTP_SERVERADMIN: ${HTTP_SERVERADMIN}
-      http_proxy: ${HTTP_PROXY}
-      https_proxy: ${HTTPS_PROXY}
-      no_proxy: ${NO_PROXY}
-      IP: ${HTTP_ALLOWED_IP}
-      PHP_UPLOAD_MAX_FILESIZE: "${PHP_UPLOAD_MAX_FILESIZE}"
-      PHP_MAX_EXECUTION_TIME: "${PHP_MAX_EXECUTION_TIME}"
     ${LOG_SETTINGS}
 
   misp-robot:
-    ${IMAGE_MISP_ROBOT}
-    environment:
-      http_proxy: ${HTTP_PROXY}
-      https_proxy: ${HTTPS_PROXY}
-      no_proxy: ${NO_PROXY}
-      MISP_FQDN: ${MISP_FQDN}
-    volumes:
-    # Github Repository
-    - ${MISP_dockerized_repo}:/srv/MISP-dockerized
-    #- ${MISP_dockerized_repo}/current/playbooks:/etc/ansible/playbooks/robot-playbook:ro
     ${LOG_SETTINGS}
-
 EOF
 ###############################################
 

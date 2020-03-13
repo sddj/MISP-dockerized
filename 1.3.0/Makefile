@@ -88,10 +88,10 @@ pull:
 		--rm \
 	    	--network="host" \
 	    	-v $(CURDIR):/srv/MISP-dockerized \
-    	-v $(CURDIR)/scripts:/srv/scripts:ro \
+	-v $(CURDIR)/scripts:/srv/scripts:ro \
 		-v ~/.docker:/root/.docker:ro \
 		-v /var/run/docker.sock:/var/run/docker.sock:ro \
-		$(shell cat $(CURDIR)/config/config.env|grep DOCKER_REGISTRY|cut -d = -f 2)/misp-dockerized-robot:$(shell cat $(CURDIR)/config/config.env|grep ROBOT_CONTAINER_TAG|cut -d = -f 2) bash -c "docker-compose -f /srv/MISP-dockerized/docker-compose.yml -f /srv/MISP-dockerized/docker-compose.override.yml pull "
+		$(shell cat $(CURDIR)/config/config.env|grep DOCKER_REGISTRY|cut -d = -f 2)/misp-dockerized-robot:$(shell cat $(CURDIR)/config/config.env|grep ROBOT_CONTAINER_TAG|cut -d = -f 2) bash -c "cd /srv/MISP-dockerized && docker-compose pull"
 deploy: 
 	@echo " ###########	Deploy Environment	###########"
 	docker run \
@@ -99,10 +99,10 @@ deploy:
 		--rm \
 	    	--network="host" \
 	    	-v $(CURDIR):/srv/MISP-dockerized \
-    	-v $(CURDIR)/scripts:/srv/scripts:ro \
+	-v $(CURDIR)/scripts:/srv/scripts:ro \
 		-v ~/.docker:/root/.docker:ro \
 		-v /var/run/docker.sock:/var/run/docker.sock:ro \
-		$(shell cat $(CURDIR)/config/config.env|grep DOCKER_REGISTRY|cut -d = -f 2)/misp-dockerized-robot:$(shell cat $(CURDIR)/config/config.env|grep ROBOT_CONTAINER_TAG|cut -d = -f 2) bash -c "docker-compose -f /srv/MISP-dockerized/docker-compose.yml -f /srv/MISP-dockerized/docker-compose.override.yml up -d "
+		$(shell cat $(CURDIR)/config/config.env|grep DOCKER_REGISTRY|cut -d = -f 2)/misp-dockerized-robot:$(shell cat $(CURDIR)/config/config.env|grep ROBOT_CONTAINER_TAG|cut -d = -f 2) bash -c "cd /srv/MISP-dockerized && docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d"
 
 # delete all misp container, volumes and images
 delete: copy-ssl

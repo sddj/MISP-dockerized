@@ -4,19 +4,25 @@ networks:
   misp-backend:
     driver: bridge
     driver_opts:
-     com.docker.network.bridge.name: "mispbr0"
+     com.docker.network.bridge.name: "${BRIDGE_NAME}"
      com.docker.network.enable_ipv6: "false"
     ipam:
       config:
-      - subnet: "192.168.47.0/28"
+      - subnet: "${DOCKER_NETWORK}"
 
 services:
   # ### MISP Database ###
   # # LINK: https://hub.docker.com/_/mariadb/
   # misp-db:
-  #   image: mariadb:10.3.10-bionic
+  #   image: ${MISP_IMAGE_DB}
   #   container_name: misp-db
   #   restart: unless-stopped
+  #   environment:
+  #     # DB
+  #     MYSQL_ROOT_PASSWORD: ${MISP_MYSQL_ROOT_PASSWORD}
+  #     MYSQL_DATABASE: ${MISP_MYSQL_DATABASE}
+  #     MYSQL_USER: ${MISP_MYSQL_USER}
+  #     MYSQL_PASSWORD: ${MISP_MYSQL_PASSWORD}
   #   volumes:
   #   - misp-vol-db-data:/var/lib/mysql/"
   #   healthcheck:
@@ -33,7 +39,7 @@ services:
   # LINK: https://docs.docker.com/samples/library/redis/
   # LINK: https://github.com/docker-library/docs/tree/master/redis
   misp-redis:
-    image: dockerhub.dcso.de/misp-dockerized-redis:5-alpine3.9
+    image: ${MISP_IMAGE_REDIS}
     restart: unless-stopped
     container_name: misp-redis
     command: ["redis-server", "--appendonly", "yes"] #For Data persistence
@@ -51,9 +57,19 @@ services:
   
   ### MISP Modules ###
   misp-modules:
-    image: dockerhub.dcso.de/misp-dockerized-misp-modules:latest
+    image: ${MISP_IMAGE_MODULES}
     container_name: misp-modules
     restart: unless-stopped
+    environment:
+      # REDIS
+      REDIS_BACKEND: ${MISP_REDIS_FQDN}
+      REDIS_PORT: ${MISP_REDIS_PORT}
+      REDIS_PW: ${MISP_REDIS_PW}
+      REDIS_DATABASE: ${MISP_REDIS_DATABASE}
+      # PROXY
+      http_proxy: ${MISP_PROXY_HTTP}
+      https_proxy: ${MISP_PROXY_HTTPS}
+      no_proxy:  ${MISP_PROXY_NO}
     networks:
       misp-backend:
         aliases:
@@ -62,9 +78,51 @@ services:
 
   ### MISP Apache Server ###    
   misp-server:
-    image: dockerhub.dcso.de/misp-dockerized-server:2.4.117-debian
+    image: ${MISP_IMAGE_SERVER}
     container_name: misp-server
     restart: unless-stopped
+    environment:
+      # DB
+      MYSQL_ROOT_PASSWORD: ${MISP_MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MISP_MYSQL_DATABASE}
+      MYSQL_USER: ${MISP_MYSQL_USER}
+      MYSQL_PASSWORD: ${MISP_MYSQL_PASSWORD}
+      # REDIS
+      REDIS_FQDN: ${MISP_REDIS_FQDN}
+      REDIS_PORT: ${MISP_REDIS_PORT}
+      REDIS_PW: ${MISP_REDIS_PW}
+      REDIS_DATABASE: ${MISP_REDIS_DATABASE}
+      # PROXY
+      http_proxy: ${MISP_PROXY_HTTP}
+      https_proxy: ${MISP_PROXY_HTTPS}
+      no_proxy:  ${MISP_PROXY_NO}
+      # POSTFIX
+      SENDER_ADDRESS: ${MISP_POSTFIX_SENDER_ADDRESS}
+      DOMAIN: ${MISP_POSTFIX_DOMAIN}
+      HTTP_SERVERADMIN: ${MISP_HTTP_SERVERADMIN}
+      RELAYHOST: ${MISP_POSTFIX_RELAY_HOST}
+      RELAY_USER: ${MISP_POSTFIX_RELAY_USER}
+      RELAY_PASSWORD: ${MISP_POSTFIX_RELAY_PASSWORD}
+      DOCKER_NETWORK: ${DOCKER_NETWORK}
+      DEBUG_PEER: ${MISP_POSTFIX_DEBUG_PEER}
+      # MISP
+      MISP_FQDN: ${MISP_FQDN}
+      MISP_URL: ${MISP_URL}
+      MISP_HTTPS_PORT: ${MISP_HTTPS_PORT}
+      MISP_prefix: ${MISP_prefix}
+      MISP_encoding: ${MISP_encoding}
+      MISP_SALT: ${MISP_SALT}
+      ADD_ANALYZE_COLUMN: ${MISP_ADD_ANALYZE_COLUMN}
+      USE_PGP: ${MISP_USE_PGP}
+      USE_SMIME: ${MISP_USE_SMIME}
+      # Cron
+      CRON_INTERVAL: ${MISP_CRON_INTERVAL}
+      CRON_USER_ID: ${MISP_CRON_USER_ID}
+      # PHP
+      PHP_MEMORY_LIMIT: ${MISP_PHP_MEMORY_LIMIT}
+      PHP_MAX_EXECUTION_TIME: ${MISP_PHP_MAX_EXECUTION_TIME}
+      PHP_POST_MAX_SIZE: ${MISP_PHP_POST_MAX_SIZE}
+      PHP_UPLOAD_MAX_FILESIZE: ${MISP_PHP_UPLOAD_MAX_FILESIZE}
     volumes:
     ###### mips-server ######
     # Apache2 Configuration
@@ -91,16 +149,25 @@ services:
 
   ### Reverse Proxy ###
   misp-proxy:
-    image: dockerhub.dcso.de/misp-dockerized-proxy:1
+    image: ${MISP_IMAGE_PROXY}
     container_name: misp-proxy
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"    
     environment:
-      HTTP_PROXY: ${HTTP_PROXY}
-      HTTPS_PROXY: ${HTTPS_PROXY}
-      NO_PROXY: ${NO_PROXY}
+      MISP_FQDN: ${MISP_FQDN}
+      HTTP_SERVERADMIN: ${MISP_HTTP_SERVERADMIN}
+      IP: ${MISP_PROXY_IP}
+      PHP_UPLOAD_MAX_FILESIZE: ${MISP_PHP_UPLOAD_MAX_FILESIZE}
+      PHP_MAX_EXECUTION_TIME: ${MISP_PHP_MAX_EXECUTION_TIME}
+
+      # ?HTTP_PROXY: ${MISP_PROXY_HTTP}
+      # ?HTTPS_PROXY: ${MISP_PROXY_HTTPS}
+      # ?NO_PROXY: ${MISP_PROXY_NO}
+      http_proxy: ${MISP_PROXY_HTTP}
+      https_proxy: ${MISP_PROXY_HTTPS}
+      no_proxy: ${MISP_PROXY_NO}
     volumes:
       # NGINX Configuration
       #- misp-vol-proxy-conf:/etc/nginx/conf.d
@@ -114,14 +181,21 @@ services:
 
   ### Robot ###
   misp-robot:
-    image: dockerhub.dcso.de/misp-dockerized-robot:2
+    image: ${MISP_IMAGE_ROBOT}
     container_name: misp-robot
     restart: unless-stopped
+    environment:
+      MISP_FQDN: ${MISP_FQDN}
+      http_proxy: ${MISP_PROXY_HTTP}
+      https_proxy: ${MISP_PROXY_HTTPS}
+      no_proxy: ${MISP_PROXY_NO}
     tty: true
     stdin_open: true
     healthcheck:
       disable: true
     volumes:
+    # Github Repository
+    - ${MISP_PROJECT_DIR}:/srv/MISP-dockerized
     ######  GLOBAL VOLUMES  ######
     # Docker.sock File
     - /var/run/docker.sock:/var/run/docker.sock:ro
