@@ -110,15 +110,13 @@ function default_container_version() {
   ############################################
   # Start Global Variable Section
   ############################################
-  MISP_CONTAINER_TAG="$(cat $DOCKER_COMPOSE_FILE |grep image:|grep server|cut -d : -f 3)"
-  PROXY_CONTAINER_TAG="$(cat $DOCKER_COMPOSE_FILE |grep image:|grep proxy|cut -d : -f 3)"
-  ROBOT_CONTAINER_TAG="$(cat $DOCKER_COMPOSE_FILE |grep image:|grep robot|cut -d : -f 3)"
-  MISP_MODULES_CONTAINER_TAG="$(cat $DOCKER_COMPOSE_FILE |grep image:|grep modules|cut -d : -f 3)"
-  POSTFIX_CONTAINER_TAG="$(cat $DOCKER_COMPOSE_FILE |grep image:|grep postfix|cut -d : -f 3)"
-  REDIS_CONTAINER_TAG="$(cat $DOCKER_COMPOSE_FILE |grep image:|grep redis|cut -d : -f 3)"
-  DB_CONTAINER_TAG="$(cat $DOCKER_COMPOSE_FILE |grep image:|grep db|cut -d : -f 3)"
+  MISP_CONTAINER_TAG="$(grep default-image-server= $DOCKER_COMPOSE_FILE|cut -d : -f 2)"
+  PROXY_CONTAINER_TAG="$(grep default-image-proxy= $DOCKER_COMPOSE_FILE|cut -d : -f 2)"
+  ROBOT_CONTAINER_TAG="$(grep default-image-robot= $DOCKER_COMPOSE_FILE|cut -d : -f 2)"
+  MISP_MODULES_CONTAINER_TAG="$(grep default-image-modules= $DOCKER_COMPOSE_FILE|cut -d : -f 2)"
+  REDIS_CONTAINER_TAG="$(grep default-image-redis= $DOCKER_COMPOSE_FILE|cut -d : -f 2)"
+  DB_CONTAINER_TAG="$(grep default-image-db= $DOCKER_COMPOSE_FILE|cut -d : -f 2)"
   if [ "$DEV_MODE" = true ]; then
-    [ -z "$(echo "$POSTFIX_CONTAINER_TAG"|grep dev)" ] && POSTFIX_CONTAINER_TAG="$POSTFIX_CONTAINER_TAG-dev"
     [ -z "$(echo "$MISP_CONTAINER_TAG"|grep dev)" ] && MISP_CONTAINER_TAG="$MISP_CONTAINER_TAG-dev"
     [ -z "$(echo "$PROXY_CONTAINER_TAG"|grep dev)" ] && PROXY_CONTAINER_TAG="$PROXY_CONTAINER_TAG-dev"
     [ -z "$(echo "$ROBOT_CONTAINER_TAG"|grep dev)" ] && ROBOT_CONTAINER_TAG="$ROBOT_CONTAINER_TAG-dev"
@@ -632,7 +630,6 @@ USE_SYSLOG="${USE_SYSLOG}"
 SYSLOG_REMOTE_HOST="${SYSLOG_REMOTE_HOST}"
 # Docker Registry Environment Variables
 DOCKER_REGISTRY=${DOCKER_REGISTRY}
-#POSTFIX_CONTAINER_TAG=${POSTFIX_CONTAINER_TAG}
 #MISP_CONTAINER_TAG=${MISP_CONTAINER_TAG}
 #PROXY_CONTAINER_TAG=${PROXY_CONTAINER_TAG}
 #ROBOT_CONTAINER_TAG=${ROBOT_CONTAINER_TAG}
