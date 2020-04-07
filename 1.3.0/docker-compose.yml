@@ -133,6 +133,8 @@ services:
       PHP_MAX_EXECUTION_TIME: ${MISP_PHP_MAX_EXECUTION_TIME}
       PHP_POST_MAX_SIZE: ${MISP_PHP_POST_MAX_SIZE}
       PHP_UPLOAD_MAX_FILESIZE: ${MISP_PHP_UPLOAD_MAX_FILESIZE}
+    ports:
+      - 8080:80
     volumes:
     ###### mips-server ######
     # Apache2 Configuration (misp.conf, misp.ssl)
