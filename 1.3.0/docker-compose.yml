@@ -31,7 +31,7 @@ services:
     volumes:
     - ${VOLDIR}/mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysql -u $$MYSQL_USER '-p$$MYSQL_PASSWORD' -h misp-db --execute 'show databases;'"]
+      test: ["CMD-SHELL", "mysql -u $$MYSQL_USER \"-p$$MYSQL_PASSWORD\" -h misp-db --execute 'show databases;'"]
       interval: 1m
       timeout: 15s
       retries: 5
