@@ -38,7 +38,7 @@ services:
     networks:
       misp-backend:
         aliases:
-        - misp-db 
+        - misp-db
 
   ### MISP Redis Server ###
   # LINK: https://docs.docker.com/samples/library/redis/
