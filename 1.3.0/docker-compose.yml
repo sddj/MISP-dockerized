@@ -125,6 +125,8 @@ services:
       ADD_ANALYZE_COLUMN: ${MISP_ADD_ANALYZE_COLUMN}
       USE_PGP: ${MISP_USE_PGP}
       USE_SMIME: ${MISP_USE_SMIME}
+      HTTPS_ENABLE: ${MISP_USE_HTTPS}
+      MISP_MODULES_URL: ${MISP_MODULES_URL}
       # Cron
       CRON_INTERVAL: ${MISP_CRON_INTERVAL}
       CRON_USER_ID: ${MISP_CRON_USER_ID}
@@ -135,30 +137,6 @@ services:
       PHP_UPLOAD_MAX_FILESIZE: ${MISP_PHP_UPLOAD_MAX_FILESIZE}
     ports:
       - 8080:80
-    volumes:
-    ###### mips-server ######
-    # Apache2 Configuration (misp.conf, misp.ssl)
-    - ${VOLDIR}/apache2-sites-enabled:/etc/apache2/sites-enabled
-    # Volume with Certificates *does-not-exist*
-    - ${VOLDIR}/apache2-ssl:/etc/apache2/ssl
-    # Volume with PGP Key ()
-    - ${VOLDIR}/gnupg:/var/www/MISP/.gnupg
-    # Volume with S/MIME Certificate and Key ()
-    - ${VOLDIR}/smime:/var/www/MISP/.smime
-    # (NOT_CONFIGURED,bootstrap.default.php,config.default.php,core.default.php,database.default.php,email.php,routes.php)
-    - ${VOLDIR}/app-config:/var/www/MISP/app/Config
-    # (bootstrap.php,bootstrap_config.php,config.php)
-    - ${VOLDIR}/app-cakeresque:/var/www/MISP/app/Plugin/CakeResque/Config
-    # ({cache/{feeds/empty,ingest/empty,models/empty,persistent/empty,views/empty},cached_exports/rpz/empty,files/empty,logs/empty,sessions/empty,yara/empty})
-    - ${VOLDIR}/app-tmp:/var/www/MISP/app/tmp
-    # (...lots)
-    - ${VOLDIR}/app-files:/var/www/MISP/app/files
-    ###### misp-redis ######
-    # *does-not-exist*
-    - ${VOLDIR}/redis:/redis_data_dir
-    ###### misp-db ######
-    # *does-not-exist*
-    - ${VOLDIR}/mysql:/var/lib/mysql
     networks:
       misp-backend:
         aliases:
